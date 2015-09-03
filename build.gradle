@@ -1,0 +1,71 @@
+apply plugin: 'java'
+apply plugin: 'groovy'
+apply plugin: 'idea'
+apply plugin: 'maven'
+apply plugin: 'maven-publish'
+apply plugin: 'com.jfrog.bintray'
+
+group = 'com.meltwater'
+version = project_version
+sourceCompatibility = 1.7
+
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath "com.jfrog.bintray.gradle:gradle-bintray-plugin:1.2"
+    }
+}
+
+
+publishing {
+    publications {
+        MyPublication(MavenPublication) {
+            from components.java
+            groupId 'com.meltwater'
+            artifactId 'meltwater-elasticsearch-queries'
+            version project.version
+        }
+    }
+}
+
+task javadocJar(type: Jar) {
+    classifier = 'javadoc'
+    from javadoc
+}
+
+task sourcesJar(type: Jar) {
+    classifier = 'sources'
+    from sourceSets.main.allSource
+}
+
+artifacts{
+    archives javadocJar, sourcesJar, jar
+}
+
+bintray {
+    user = System.getenv('BINTRAY_USER')
+    key = System.getenv('BINTRAY_KEY')
+    configurations = ['archives']
+    pkg {
+        repo = 'meltwater-elasticsearch-queries'
+        name = 'meltwater-elasticsearch-queries'
+        userOrg = user
+        licenses = ['MIT']
+        vcsUrl = 'git@github.com:meltwater/meltwater-elasticsearch-queries.git'
+        version {
+            name = project.version
+            desc = 'Meltwater elasticsearch queries'
+        }
+    }
+}
+
+dependencies {
+    compile 'org.slf4j:slf4j-api:1.7.12'
+    compile 'org.elasticsearch:elasticsearch:1.7.1'
+
+    testCompile 'junit:junit:4.12'
+    testCompile 'org.codehaus.groovy:groovy-all:2.4'
+    testCompile 'org.spockframework:spock-core:1.0-groovy-2.4'
+}
