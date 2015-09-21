@@ -59,4 +59,25 @@ public class WildcardPhraseQuery extends Query {
         }
         return multi.rewrite(reader);
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
+
+        WildcardPhraseQuery that = (WildcardPhraseQuery) o;
+
+        if (producers != null ? !producers.equals(that.producers) : that.producers != null) return false;
+        return !(positions != null ? !positions.equals(that.positions) : that.positions != null);
+
+    }
+
+    @Override
+    public int hashCode() {
+        int result = super.hashCode();
+        result = 31 * result + (producers != null ? producers.hashCode() : 0);
+        result = 31 * result + (positions != null ? positions.hashCode() : 0);
+        return result;
+    }
 }
