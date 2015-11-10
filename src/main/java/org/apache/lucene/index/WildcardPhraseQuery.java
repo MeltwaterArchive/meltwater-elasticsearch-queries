@@ -1,8 +1,8 @@
 package org.apache.lucene.index;
 
+import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.MultiPhraseQuery;
 import org.apache.lucene.search.Query;
-import org.elasticsearch.common.lucene.search.MatchNoDocsQuery;
 
 import java.io.IOException;
 import java.util.LinkedList;

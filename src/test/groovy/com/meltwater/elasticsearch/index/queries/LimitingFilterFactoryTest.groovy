@@ -1,28 +1,27 @@
 package com.meltwater.elasticsearch.index.queries
 
+import com.google.common.base.Joiner
+import com.google.common.collect.Sets
 import org.apache.lucene.analysis.core.WhitespaceAnalyzer
 import org.apache.lucene.document.Field
 import org.apache.lucene.document.TextField
-import org.apache.lucene.index.AtomicReaderContext
 import org.apache.lucene.index.DirectoryReader
 import org.apache.lucene.index.IndexReader
 import org.apache.lucene.index.IndexWriter
 import org.apache.lucene.index.IndexWriterConfig
 import org.apache.lucene.index.IndexableField
+import org.apache.lucene.index.LeafReaderContext
 import org.apache.lucene.index.Term
 import org.apache.lucene.index.TermTermsProducer
 import org.apache.lucene.index.WildcardPhraseQuery
 import org.apache.lucene.index.WildcardTermsProducer
-import org.apache.lucene.queries.TermFilter
 import org.apache.lucene.search.BooleanClause
 import org.apache.lucene.search.BooleanQuery
-import org.apache.lucene.search.Collector
-import org.apache.lucene.search.Filter
 import org.apache.lucene.search.IndexSearcher
-import org.apache.lucene.search.MatchAllDocsQuery
 import org.apache.lucene.search.PhraseQuery
 import org.apache.lucene.search.Query
 import org.apache.lucene.search.Scorer
+import org.apache.lucene.search.SimpleCollector
 import org.apache.lucene.search.TermQuery
 import org.apache.lucene.search.WildcardQuery
 import org.apache.lucene.search.spans.SpanMultiTermQueryWrapper
@@ -33,9 +32,6 @@ import org.apache.lucene.search.spans.SpanTermQuery
 import org.apache.lucene.store.Directory
 import org.apache.lucene.store.RAMDirectory
 import org.apache.lucene.util.Version
-import org.elasticsearch.common.base.Joiner
-import org.elasticsearch.common.collect.Sets
-import org.elasticsearch.common.lucene.search.XFilteredQuery
 import spock.lang.Shared
 import spock.lang.Specification
 import spock.lang.Unroll
@@ -67,7 +63,7 @@ class LimitingFilterFactoryTest extends Specification {
     static String nameField = 'name'
 
     def setupSpec() {
-        long seed = new Random().nextLong()
+        long seed = 158556155086072256//new Random().nextLong()
         factory = new LimitingFilterFactory()
         println "Running randomized pre-filtering query test with seed: $seed";
         Random r = new Random(seed)
@@ -92,7 +88,7 @@ class LimitingFilterFactoryTest extends Specification {
         query << queryGenerator
     }
 
-    boolean assertSameOrMoreWithFilter(Query q, Filter filter) {
+    boolean assertSameOrMoreWithFilter(Query q, Query filter) {
         if (!sameOrMoreResults(q,filter)) {
             throwMinDiff(q,filter)
             return false
@@ -102,8 +98,15 @@ class LimitingFilterFactoryTest extends Specification {
     }
 
 
-    boolean sameOrMoreResults(Query q, Filter filter) {
-        return search(new XFilteredQuery(new MatchAllDocsQuery(), filter)).containsAll(search(q))
+    boolean sameOrMoreResults(Query q, Query filter) {
+        return search(filtered(q, filter)).containsAll(search(q))
+    }
+
+    private BooleanQuery filtered(Query q, Query filter) {
+        def bq = new BooleanQuery()
+        bq.add(q, BooleanClause.Occur.MUST);
+        bq.add(filter, BooleanClause.Occur.MUST);
+        bq
     }
 
     Set<Integer> search(Query q) {
@@ -114,7 +117,7 @@ class LimitingFilterFactoryTest extends Specification {
 
     void index(Random r, DataGenerator dataGen) {
         dir = new RAMDirectory()
-        def writer = new IndexWriter(dir, new IndexWriterConfig(Version.LATEST, new WhitespaceAnalyzer()))
+        def writer = new IndexWriter(dir, new IndexWriterConfig(new WhitespaceAnalyzer()))
         (0..<1000).each {
             writer.addDocument(dataGen.genDoc())
             if (r.nextBoolean()) {
@@ -124,23 +127,26 @@ class LimitingFilterFactoryTest extends Specification {
         writer.close()
     }
 
-    def throwMinDiff(Query q, Filter filter) {
+    def throwMinDiff(Query q, Query filter) {
         if (q instanceof BooleanQuery) {
             BooleanQuery bq = q;
             bq.each {
-                if (!sameOrMoreResults(it.query, filter)) {
-                    throwMinDiff(it.query, filter)
+                def fi = factory.limitingFilter(it.query)
+                if(fi.present){
+                    if (!sameOrMoreResults(it.query, fi.get())) {
+                        throwMinDiff(it.query, fi.get())
+                    }
                 }
             }
         }
         Set<Integer> matchedWithoutFilter = search(q)
-        Set<Integer> matchedWithFilter = search(new XFilteredQuery(new MatchAllDocsQuery(), filter))
+        Set<Integer> matchedWithFilter = search(filter)
         if (!matchedWithFilter.containsAll(matchedWithoutFilter)) {
             throw new AssertionError(buildAssertionMessage(q, filter, matchedWithoutFilter, matchedWithFilter))
         }
     }
 
-    private String buildAssertionMessage(Query q, Filter f, Set<Integer> matchedWithoutFilter, Set<Integer> matchedWithFilter) {
+    private String buildAssertionMessage(Query q, Query f, Set<Integer> matchedWithoutFilter, Set<Integer> matchedWithFilter) {
         Set<Integer> unwantedDocs = Sets.difference(matchedWithFilter, matchedWithoutFilter)
         Set<Integer> missingDocs = Sets.difference(matchedWithoutFilter, matchedWithFilter)
         String msg = "Filter did not match all documents matched by the query:\nquery: $q\nfilter: $f"
@@ -211,16 +217,11 @@ class LimitingFilterFactoryTest extends Specification {
             }
         }
 
-        def filteredQueryGenerator = {
-            int depth ->
-                return new XFilteredQuery(genQuery(depth + 1), new TermFilter(randomTerm()))
-        }
-
         def booleanQueryGenerator = {
             int depth ->
                 int clauses = r.nextInt(maxClauses - 1) + 1
                 def ret = new BooleanQuery()
-                ret.add(genQuery(depth + 1), randomElement(r, [BooleanClause.Occur.MUST, BooleanClause.Occur.SHOULD]))
+                ret.add(genQuery(depth + 1), randomElement(r, [BooleanClause.Occur.MUST, BooleanClause.Occur.SHOULD, BooleanClause.Occur.FILTER]))
                 (1..<clauses).each {
                     ret.add(genQuery(depth + 1), randomElement(r, Arrays.asList(BooleanClause.Occur.values())))
                 }
@@ -259,7 +260,6 @@ class LimitingFilterFactoryTest extends Specification {
         ]
 
         def treeGenerators = [
-                filteredQueryGenerator,
                 booleanQueryGenerator,
                 spanNearGenerator
         ]
@@ -471,9 +471,9 @@ class LimitingFilterFactoryTest extends Specification {
         ]
     }
 
-    class DocIdCollector extends Collector {
+    class DocIdCollector extends SimpleCollector {
 
-        AtomicReaderContext context
+        LeafReaderContext context
         Set<Integer> res = new HashSet<>()
 
         @Override
@@ -482,18 +482,18 @@ class LimitingFilterFactoryTest extends Specification {
         }
 
         @Override
+        void doSetNextReader(LeafReaderContext context){
+            this.context = context
+        }
+
+        @Override
         void collect(int doc) throws IOException {
             res.add(context.docBase + doc)
         }
 
         @Override
-        void setNextReader(AtomicReaderContext context) throws IOException {
-            this.context = context
-        }
-
-        @Override
-        boolean acceptsDocsOutOfOrder() {
-            return true
+        boolean needsScores() {
+            return false
         }
     }
 

@@ -25,10 +25,10 @@ public class WildcardTermsProducer extends TermsProducerBase {
     @Override
     public Term[] getTerms(IndexReader reader) throws IOException {
         TermsEnum automatonTermsEnum = wildcardEnumeration(reader);
-        return automatonTermsEnum != null? allTerms(reader, automatonTermsEnum):EMPTY;
+        return automatonTermsEnum != null? allTerms(automatonTermsEnum):EMPTY;
     }
 
-    private Term[] allTerms(IndexReader reader, TermsEnum automatonTermsEnum)
+    private Term[] allTerms(TermsEnum automatonTermsEnum)
             throws IOException {
         Set<Term> ret = new HashSet<>();
         BytesRef ref;
@@ -46,7 +46,7 @@ public class WildcardTermsProducer extends TermsProducerBase {
             return null;
         }
         return new AutomatonTermsEnum(
-                terms.iterator(null),
+                terms.iterator(),
                 new CompiledAutomaton(
                         WildcardQuery.toAutomaton(term),
                         false, false));
