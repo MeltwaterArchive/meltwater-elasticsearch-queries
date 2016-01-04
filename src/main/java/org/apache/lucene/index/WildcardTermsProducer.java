@@ -33,7 +33,7 @@ public class WildcardTermsProducer extends TermsProducerBase {
         Set<Term> ret = new HashSet<>();
         BytesRef ref;
         while ((ref = automatonTermsEnum.next()) != null) {
-            ret.add(new Term(term.field, BytesRef.deepCopyOf(ref)));
+            ret.add(new Term(term.field(), BytesRef.deepCopyOf(ref)));
 
         }
         return ret.toArray(new Term[ret.size()]);
@@ -41,7 +41,7 @@ public class WildcardTermsProducer extends TermsProducerBase {
 
     private TermsEnum wildcardEnumeration(final IndexReader reader)
             throws IOException {
-        Terms terms = MultiFields.getTerms(reader, term.field);
+        Terms terms = MultiFields.getTerms(reader, term.field());
         if(terms == null){
             return null;
         }

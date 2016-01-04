@@ -65,11 +65,13 @@ bintray {
     }
 }
 
+def LUCENE_VERSION = '5.3.1'
+
 dependencies {
     compile 'org.slf4j:slf4j-api:1.7.12'
-    compile 'org.apache.lucene:lucene-core:5.2.1'
-    compile 'org.apache.lucene:lucene-join:5.2.1'
-    compile 'org.apache.lucene:lucene-analyzers-common:5.2.1'
+    compile "org.apache.lucene:lucene-core:${LUCENE_VERSION}"
+    compile "org.apache.lucene:lucene-join:${LUCENE_VERSION}"
+    compile "org.apache.lucene:lucene-analyzers-common:${LUCENE_VERSION}"
     compile 'com.google.guava:guava:18.0'
 
     testCompile 'junit:junit:4.12'
