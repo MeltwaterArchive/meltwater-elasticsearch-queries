@@ -1,3 +1,5 @@
+import static java.lang.System.getenv
+
 apply plugin: 'java'
 apply plugin: 'groovy'
 apply plugin: 'idea'
@@ -11,6 +13,16 @@ sourceCompatibility = 1.7
 
 repositories{
     jcenter()
+    mavenLocal()
+    if (getenv('MAVEN_URL')!=null) {
+        maven {
+            credentials {
+                username getenv('MAVEN_USER')
+                password getenv('MAVEN_PASSWORD')
+            }
+            url getenv('MAVEN_URL')
+        }
+    }
 }
 
 buildscript {
@@ -18,19 +30,7 @@ buildscript {
         jcenter()
     }
     dependencies {
-        classpath "com.jfrog.bintray.gradle:gradle-bintray-plugin:1.2"
-    }
-}
-
-
-publishing {
-    publications {
-        MyPublication(MavenPublication) {
-            from components.java
-            groupId 'com.meltwater'
-            artifactId 'meltwater-elasticsearch-queries'
-            version project.version
-        }
+        classpath "com.jfrog.bintray.gradle:gradle-bintray-plugin:1.7"
     }
 }
 
@@ -44,25 +44,51 @@ task sourcesJar(type: Jar) {
     from sourceSets.main.allSource
 }
 
-artifacts{
-    archives javadocJar, sourcesJar, jar
+publishing {
+    publications {
+        JavaArtifacts(MavenPublication) {
+            from components.java
+            artifact sourcesJar
+            artifact javadocJar
+            groupId project.group
+            artifactId project.name
+            version project.version
+        }
+    }
+    repositories {
+        maven {
+            credentials {
+                username getenv('MAVEN_USER')
+                password getenv('MAVEN_PASSWORD')
+            }
+            url getenv('MAVEN_URL')
+        }
+    }
 }
 
 bintray {
-    user = System.getenv('BINTRAY_USER')
-    key = System.getenv('BINTRAY_KEY')
-    configurations = ['archives']
+    user = getenv('BINTRAY_USER')
+    key = getenv('BINTRAY_KEY')
+    publications = ['JavaArtifacts']
+    publish = true
     pkg {
-        repo = 'meltwater-elasticsearch-queries'
+        repo = 'opensource'
         name = 'meltwater-elasticsearch-queries'
-        userOrg = user
+        userOrg = 'meltwater'
         licenses = ['MIT']
-        vcsUrl = 'git@github.com:meltwater/meltwater-elasticsearch-queries.git'
+        vcsUrl = "https://github.com/meltwater/${project.name}"
         version {
-            name = project.version
-            desc = 'Meltwater elasticsearch queries'
+            gpg{
+                sign = true
+            }
+            released  = new Date()
         }
     }
+}
+
+
+task ('wrapper', type:Wrapper) {
+    gradleVersion = '3.1'
 }
 
 def LUCENE_VERSION = '5.3.1'
