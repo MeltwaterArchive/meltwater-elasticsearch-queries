@@ -15,15 +15,6 @@ sourceCompatibility = 1.7
 repositories{
     jcenter()
     mavenLocal()
-    if (getenv('MAVEN_URL')!=null) {
-        maven {
-            credentials {
-                username getenv('MAVEN_USER')
-                password getenv('MAVEN_PASSWORD')
-            }
-            url getenv('MAVEN_URL')
-        }
-    }
 }
 buildscript {
     repositories {
