@@ -1,5 +1,4 @@
 # Meltwater elasticsearch queries library
- [![Build Status](https://travis-ci.org/meltwater/meltwater-elasticsearch-queries.svg?branch=master)](https://travis-ci.org/meltwater/meltwater-elasticsearch-queries)
  [ ![Download](https://api.bintray.com/packages/meltwater/meltwater-elasticsearch-queries/meltwater-elasticsearch-queries/images/download.svg) ](https://bintray.com/meltwater/meltwater-elasticsearch-queries/meltwater-elasticsearch-queries/_latestVersion)
  
 This library contains custom queries and query optimizations for Elasticsearch used at Meltwater.
@@ -11,7 +10,7 @@ Version matrix:
     ├─────────────────────────────────────────┼──────────────────────────┤
     │ 2.0.x                                   │ 2.0.0 ─► 2.0.0           │
     ├─────────────────────────────────────────┼──────────────────────────┤
-    │ 1.0.x                                   │ 1.7.0 ─► 1.7.1           │
+    │ 1.1.x                                   │ 1.7.0 ─► 1.7.1           │
     └─────────────────────────────────────────┴──────────────────────────┘
     
 ## Licence
