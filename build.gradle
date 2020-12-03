@@ -1,13 +1,10 @@
-import static java.lang.System.getenv
-
 apply plugin: 'java'
-apply plugin: 'groovy'
-apply plugin: 'idea'
 apply plugin: 'maven'
 apply plugin: 'maven-publish'
-apply plugin: 'com.jfrog.bintray'
+apply plugin: 'groovy'
+apply plugin: 'com.jfrog.artifactory'
 
-group = 'com.meltwater'
+project.group = 'com.meltwater'
 
 sourceCompatibility = 1.7
 
@@ -20,14 +17,19 @@ buildscript {
         jcenter()
     }
     dependencies {
-        classpath "com.jfrog.bintray.gradle:gradle-bintray-plugin:1.7"
+        classpath "org.jfrog.buildinfo:build-info-extractor-gradle:4.18.2"
     }
+}
+
+task version() {
+    println project.version
 }
 
 task javadocJar(type: Jar) {
     classifier = 'javadoc'
-    from javadoc
+    from javadoc.destinationDir
 }
+
 
 task sourceJar(type: Jar) {
     from sourceSets.main.allJava
@@ -43,39 +45,28 @@ publishing {
             groupId project.group
             artifactId project.name
             version project.version
-        }
-    }
-    repositories {
-        maven {
-            credentials {
-                username getenv('MAVEN_USER')
-                password getenv('MAVEN_PASSWORD')
+            pom.withXml {
+                def root = asNode()
+                root.appendNode('description', 'This library contains custom queries and query optimizations for Elasticsearch used at Meltwater.')
+                root.appendNode('name', project.name)
+                root.appendNode('url', 'https://github.com/meltwater/meltwater-elasticsearch-queries')
+                root.children().last() + pomConfig
             }
-            url getenv('MAVEN_URL')
         }
     }
 }
 
-task ('wrapper', type:Wrapper) {
-    gradleVersion = '3.1'
-}
-
-bintray {
-    user = getenv('BINTRAY_USER')
-    key = getenv('BINTRAY_KEY')
-    publications = ['JavaArtifacts']
-    publish = true
-    pkg {
-        repo = 'meltwater-elasticsearch-queries'
-        name = 'meltwater-elasticsearch-queries'
-        userOrg = 'meltwater'
-        licenses = ['MIT']
-        vcsUrl = "https://github.com/meltwater/${project.name}"
-        version {
-            gpg{
-                sign = true
-            }
-            released  = new Date()
+artifactory {
+    contextUrl = 'https://meltwater.jfrog.io/meltwater'
+    publish {
+        repository {
+            repoKey = 'team-horace'
+            username = System.getProperty("artifactory_user")
+            password = System.getProperty("artifactory_password")
+            maven = true
+        }
+        defaults {
+            publishConfigs('archives', 'artifacts')
         }
     }
 }
