@@ -1,5 +1,3 @@
-import static java.lang.System.getenv
-
 apply plugin: 'java'
 apply plugin: 'groovy'
 apply plugin: 'idea'
@@ -18,6 +16,9 @@ repositories{
 buildscript {
     repositories {
         jcenter()
+    }
+    dependencies {
+        classpath "org.jfrog.buildinfo:build-info-extractor-gradle:4.18.2"
     }
 }
 
