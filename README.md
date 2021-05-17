@@ -1,3 +1,7 @@
+# *** DEPRECATED***
+This repository is no longer actively maintained.
+
+
 # Meltwater elasticsearch queries library
  [ ![Download](https://api.bintray.com/packages/meltwater/meltwater-elasticsearch-queries/meltwater-elasticsearch-queries/images/download.svg) ](https://bintray.com/meltwater/meltwater-elasticsearch-queries/meltwater-elasticsearch-queries/_latestVersion)
  
